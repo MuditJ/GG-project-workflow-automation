@@ -19,6 +19,8 @@ import os,csv,json
 import luigi
 
 import constants
+import pandas as pd
+import numpy as np
 
 
 class ExtractFromDataDumpTask(luigi.Task):
@@ -30,7 +32,7 @@ class ExtractFromDataDumpTask(luigi.Task):
 		return None
 
 	def output(self):
-		return luigi.LocalTarget('extracted-config-data')
+		return luigi.LocalTarget('extracted-config-data/cluster-wise-data/')
 
 	def extract_files(self,csv_file):
 
@@ -76,7 +78,10 @@ class ExtractFromDataDumpTask(luigi.Task):
 
 	def run(self):
 		files = os.listdir(self.target_path)
-		os.mkdir(self.output().path)
+
+		#Create the target directory(where the extracted data is to be stored)
+		#os.makedirs ensures that any missing directories in the specified path is also created
+		os.makedirs(self.output().path)
 		for file in files:
 			self.extract_files(file)
 
@@ -87,7 +92,7 @@ class ExtractPhoneDataTask(luigi.Task):
 
 	def output(self):
 		return [
-		luigi.LocalTarget('extracted-config-data/phone-data'),
+		luigi.LocalTarget('extracted-config-data/all-clusters-phone-data'),
 		self.input() #LocalTarget object pointing at the extracted-config-data directory
 		]
 
@@ -123,16 +128,69 @@ class ExtractPhoneDataTask(luigi.Task):
 		with open(os.path.join(self.output()[0].path,'phone_data.json'),'w') as json_file:
 			json.dump(phone_data,json_file)
 
+class ExtractAllDeviceDataTask(luigi.Task):
+
+	def requires(self):
+		return ExtractPhoneDataTask()
+
+	def output(self):
+		return [
+		luigi.LocalTarget('extracted-config-data/all-clusters-device-data'),
+		self.input()[1] #LocalTarget object pointing at the extracted-config-data directory
+		]
+
+	def run(self):
+		all_devices_data = []
+
+		#Extract from phone.csv
+		required_fields_phone_csv = ['Device Name','Device Pool', 'CSS', 'Location']
+		required_fields_trunk_csv = ['DEVICE NAME', 'DEVICE POOL', 'CALLING SEARCH SPACE', 'LOCATION']
+
+		for cluster_path in os.listdir(self.input()[1].path):
+			
+			#Gettting data from phone.csv files
+			flag = False
+			csv_file = os.path.join(self.input()[1].path,cluster_path,'phone.csv')
+			with open(csv_file,'r') as file:
+				reader = csv.reader(file)
+				if not flag:
+					flag = True #This conditional only needs to be run once -  to get the field headers
+					field_headers = next(reader) #Get the field headers from the csv file
+					field_indices = {val:ind for ind,val in enumerate(field_headers)}
+					for row in reader: #For each row of data:
+						data_dict = {header:row[field_indices[header]] for header in required_fields_phone_csv}
+						all_devices_data.append(data_dict)
+
+			
+			#Getting data from trunk.csv files
+			flag = False
+			csv_file = os.path.join(self.input()[1].path,cluster_path,'trunk.csv')
+			with open(csv_file,'r') as file:
+				reader = csv.reader(file)
+				if not flag:
+					flag = True #This conditional only needs to be run once -  to get the field headers
+					field_headers = next(reader) #Get the field headers from the csv file
+					field_indices = {val:ind for ind,val in enumerate(field_headers)}
+				for row in reader: #For each row of data:
+
+					data_dict = {required_fields_phone_csv[ind]:row[field_indices[required_fields_trunk_csv[ind]]] for ind in range(0,len(required_fields_trunk_csv))}
+					all_devices_data.append(data_dict)
+
+		os.makedirs(self.output()[0].path)
+
+		with open(os.path.join(self.output()[0].path,'all_devices_data.json'),'w') as json_file:
+			json.dump(all_devices_data,json_file)
+
 
 class ExtractEnduserDataTask(luigi.Task):
 	def requires(self):
-		return ExtractPhoneDataTask()
+		return ExtractAllDeviceDataTask()
 
 	def output(self):
 		#Two json files will be created - one to store data for all
 		#devices and one for phone only data
 		return [
-		luigi.LocalTarget('extracted-config-data/enduser-data'),
+		luigi.LocalTarget('extracted-config-data/all-clusters-enduser-data'),
 		self.input()[1]
 		]
 
@@ -140,8 +198,8 @@ class ExtractEnduserDataTask(luigi.Task):
 		all_devices_data = []
 		phone_data = []
 
-	
-		for cluster_path in [x for x in os.listdir(self.input()[1].path) if '-Cluster-Data' in x]:
+		for cluster_path in os.listdir(self.input()[1].path):
+		#for cluster_path in [x for x in os.listdir(self.input()[1].path) if '-Cluster-Data' in x]:
 			flag = False
 			csv_file = os.path.join(self.input()[1].path,cluster_path,'enduser.csv')
 		
@@ -174,14 +232,98 @@ class ExtractEnduserDataTask(luigi.Task):
 
 		os.makedirs(self.output()[0].path)
 
-		with open(os.path.join(self.output()[0].path,'enduser_all_devices.json'),'w') as json_file:
+		with open(os.path.join(self.output()[0].path,'enduser_data_all_devices.json'),'w') as json_file:
 			json.dump(all_devices_data,json_file)
 
 		
-		with open(os.path.join(self.output()[0].path,'enduser_phone_only.json'),'w') as json_file:
+		with open(os.path.join(self.output()[0].path,'enduser_data_phone_only.json'),'w') as json_file:
 			json.dump(phone_data,json_file)
 
+
+
+class ExtractFeaturesTemplateDataTask(luigi.Task):
+
+	'''This task extracts the phone button template and softkey template data from
+	the cluster config csv files. Each phone device has a particular phone button 
+	template and softkey template associated and thus, the phone devices can be joined with the 
+	phone button and softkey template data to get a list of subscribed features for the phone '''
+	def requires(self):
+		return ExtractEnduserDataTask()
+
+	def output(self):
+		return [
+		luigi.LocalTarget('extracted-config-data/phone-button-softkey-data'),
+		self.input()[1]
+		]
+
+	def get_phone_button_template_data(self):
 		
+		phone_button_template_data = []
+		for cluster_path in os.listdir(self.input()[1].path):
+
+			flag = False
+			csv_file_one = os.path.join(self.input()[1].path,cluster_path,'phonebuttontemplate.csv')
+			
+			with open(csv_file_one,'r') as file:
+				reader = csv.reader(file)
+				if not flag:
+					flag = True #This conditional only needs to be run once -  to get the field headers
+					field_headers = next(reader) #Get the field headers from the csv file
+					fields = {val:ind for ind,val in enumerate(field_headers)}
+
+					#This represents the columns that we want to keep i.e. these represent the type of
+					#PhoneButtonTemplate feature. 
+					feature_fields = [header for header in field_headers if 'TYPE OF FEATURE' in header]
+				for row in reader: #For each row of data:
+					data_dict = {}
+					type_of_feature_vals = [(feature,row[fields[feature]]) for feature in feature_fields]
+					data_dict['Phone Button Template'] = row[0]
+					data_dict.update({val[0]:val[1] for val in type_of_feature_vals})
+					phone_button_template_data.append(data_dict)
+
+		with open(os.path.join(self.output()[0].path,'phone_button_template_data.json'),'w') as json_file:
+			json.dump(phone_button_template_data,json_file)
+
+	def get_softkey_template_data(self):
+	
+		softkey_template_data = []
+
+		for cluster_path in os.listdir(self.input()[1].path):
+
+			flag = False
+			csv_file_two = os.path.join(self.input()[1].path,cluster_path,'softkeytemplate.csv')
+
+			with open(csv_file_two,'r') as file:
+				reader = csv.reader(file)
+				if not flag:
+					flag = True #This conditional only needs to be run once -  to get the field headers
+					field_headers = next(reader) #Get the field headers from the csv file
+
+					#Get indices of all those fields which have SOFT KEY as name
+					field_indices = [ind for ind,val in enumerate(field_headers) if 'SOFT KEY' in val]
+					
+				for row in reader: #For each row of data:
+					data_dict = {}
+					softkey_template_vals = [row[ind] for ind in field_indices]
+					data_dict['Soft Key Template'] = row[0]
+					data_dict.update({f'Soft Key {x + 1}': softkey_template_vals[x] for x in range(0,len(softkey_template_vals))})
+					softkey_template_data.append(data_dict)
+
+
+		with open(os.path.join(self.output()[0].path,'softkey_template_data.json'),'w') as json_file:
+			json.dump(softkey_template_data,json_file)
+
+
+	def run(self):
+
+		#Store the to-be-read data as a list of dictionaries before writing into a JSON file
+
+		os.makedirs(self.output()[0].path)
+		
+		self.get_phone_button_template_data()
+
+		self.get_softkey_template_data()
+
 
 
 if __name__ == "__main__":

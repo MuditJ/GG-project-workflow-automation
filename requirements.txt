@@ -1,18 +1,14 @@
-Package         Version
---------------- -------
-cycler          0.10.0 
-docutils        0.16   
-kiwisolver      1.2.0  
-lockfile        0.12.2 
-luigi           3.0.0  
-matplotlib      3.2.1  
-numpy           1.18.5 
-pandas          1.0.4  
-pip             19.0.3 
-pyparsing       2.4.7  
-python-daemon   2.2.4  
-python-dateutil 2.8.1  
-pytz            2020.1 
-setuptools      40.8.0 
-six             1.15.0 
-tornado         5.1.1  
+cycler==0.10.0
+docutils==0.16
+kiwisolver==1.2.0
+lockfile==0.12.2
+luigi==3.0.0
+matplotlib==3.2.1
+numpy==1.18.5
+pandas==1.0.4
+pyparsing==2.4.7
+python-daemon==2.2.4
+python-dateutil==2.8.1
+pytz==2020.1
+six==1.15.0
+tornado==5.1.1

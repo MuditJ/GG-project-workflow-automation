@@ -61,6 +61,18 @@ class SampleTask(luigi.Task):
 			file.write('This task ran')
 
 
+class AnotherSampleTask(luigi.Task):
+
+	def requires(self):
+		return HelloNameTask(name = 'Mudit')
+
+	def output(self):
+		return luigi.LocalTarget('new_data.txt')
+
+	def run(self):
+		with open(self.output().path,'w') as file:
+			file.write('This task also ran')
+
 
 
 if __name__ == "__main__":

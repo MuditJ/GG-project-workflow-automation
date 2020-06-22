@@ -17,7 +17,7 @@ luigid --background --port=8082
 
 The individual Luigi scripts to be run are:
 
-cdr-data-pipeline.py
+cdr-data-pipeline.py \n
 extract-config-data-pipeline.py
 
 Update the location of the CDR dataset and the cluster config dataset in the constants.py file
