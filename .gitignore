@@ -23,3 +23,7 @@ extracted-config-data/
 processed_data/
 
 data-visualisation/
+
+#Ignore the required source files:
+P_CDR_REC.csv
+All_CUCM-Config-Data/

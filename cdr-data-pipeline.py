@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from constants import *
+CDR_PATH = os.path.join(os.getcwd(),'P_CDR_REC.csv')
 
 class CleanUpDatasetTask(luigi.Task):
 
@@ -215,7 +215,3 @@ class GetVisualisationsTask(luigi.Task):
 		self.get_time_based_visualization(df)
 
 		self.get_call_failure_visualization(df)
-
-
-if __name__ == "__main__":
-	luigi.run()
