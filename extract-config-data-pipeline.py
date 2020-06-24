@@ -22,14 +22,14 @@ import constants
 import pandas as pd
 import numpy as np
 
+import constants
 
-CLUSTER_CONFIG_PATH = os.path.join(os.getcwd(),'All_CUCM-Config-Data')
 
 
 class ExtractFromDataDumpTask(luigi.Task):
 
 	#Passed as command-line argument. By default, parameters are treated as string
-	target_path = luigi.Parameter(default = CLUSTER_CONFIG_PATH)
+	target_path = luigi.Parameter(default = constants.CLUSTER_CONFIG_PATH)
 
 	def requires(self):
 		return None

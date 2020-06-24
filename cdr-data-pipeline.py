@@ -19,8 +19,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+import constants
 
-CDR_PATH = os.path.join(os.getcwd(),'P_CDR_REC.csv')
 
 class CleanUpDatasetTask(luigi.Task):
 
@@ -33,8 +33,8 @@ class CleanUpDatasetTask(luigi.Task):
 		]
 
 	def run(self):
-		print('Hello')
-		df = pd.read_csv(CDR_PATH, low_memory = False)
+
+		df = pd.read_csv(constants.CDR_PATH, low_memory = False)
 		single_val_columns = [col for col in df.columns if df[col].nunique() == 1]
 		identifier_columns = [col for col in df.columns if df[col].nunique() == len(df)]
 		
@@ -116,7 +116,11 @@ class JoinCdrAndClusterConfigDataTask(luigi.Task):
 
 
 
+
 class GetVisualisationsTask(luigi.Task):
+
+	'''This task gets basic data visualisations from the processed CDR data. The focus is on visualising
+	the call traffic, call failure etc. Further visualisation can be done on this data '''
 
 	def requires(self):
 		return JoinCdrAndClusterConfigDataTask()
