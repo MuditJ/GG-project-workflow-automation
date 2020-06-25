@@ -4,13 +4,8 @@ import time
 
 #Simple pipeline to write Hello World into a file and replace World with a name
 
-
-#Make sure to run the luigid daemon which schedules the jobs,
-#and provides a  web interface to view the dependencies
-
-#Run the daemon using the command:
-
-#luigid --background --port=8082 
+#This can be run as(after installing dependencies inside a virtual environment):
+#python -m luigi --module example SampleTask
 
 
 #This is the primary task ie the task with no dependencies
@@ -63,6 +58,4 @@ class SampleTask(luigi.Task):
 
 
 
-if __name__ == "__main__":
-	luigi.run()
 
