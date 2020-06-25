@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]'
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+.DS_Store
+
+
+#Gitignoring the directories and files created by the Luigi tasks
+
+extracted-config-data/
+
+processed_data/
+
+data-visualisation/
+
+#Ignore the required source files:
+P_CDR_REC.csv
+All_CUCM-Config-Data/
