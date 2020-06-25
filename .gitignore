@@ -19,3 +19,7 @@ venv.bak/
 #Gitignoring the directories and files created by the Luigi tasks
 
 extracted-config-data/
+All_CUCM-Config-Data/
+data-visualisation/
+processed_data/
+P_CDR_REC.csv
